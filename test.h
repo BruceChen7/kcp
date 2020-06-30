@@ -56,6 +56,7 @@ static inline IINT64 iclock64(void)
 	long s, u;
 	IINT64 value;
 	itimeofday(&s, &u);
+	// 获取毫秒
 	value = ((IINT64)s) * 1000 + (u / 1000);
 	return value;
 }
@@ -84,6 +85,7 @@ static inline void isleep(unsigned long millisecond)
 #include <vector>
 
 // 带延迟的数据包
+// 抽象的延迟包
 class DelayPacket
 {
 public:
@@ -154,6 +156,7 @@ public:
 	// lostrate: 往返一周丢包率的百分比，默认 10%
 	// rttmin：rtt最小值，默认 60
 	// rttmax：rtt最大值，默认 125
+	// rtt是一个segment的往返延迟
 	LatencySimulator(int lostrate = 10, int rttmin = 60, int rttmax = 125, int nmax = 1000): 
 		r12(100), r21(100) {
 		current = iclock();		
@@ -182,6 +185,7 @@ public:
 	void send(int peer, const void *data, int size) {
 		if (peer == 0) {
 			tx1++;
+			// 发送端丢弃
 			if (r12.random() < lostrate) return;
 			if ((int)p12.size() >= nmax) return;
 		}	else {
@@ -190,11 +194,13 @@ public:
 			if ((int)p21.size() >= nmax) return;
 		}
 		DelayPacket *pkt = new DelayPacket(size, data);
+		// 获取当前的事件戳
 		current = iclock();
 		IUINT32 delay = rttmin;
 		if (rttmax > rttmin) delay += rand() % (rttmax - rttmin);
 		pkt->setts(current + delay);
 		if (peer == 0) {
+			// push 到发送队列中
 			p12.push_back(pkt);
 		}	else {
 			p21.push_back(pkt);

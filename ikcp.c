@@ -71,6 +71,7 @@ static inline char *ikcp_encode16u(char *p, unsigned short w)
 	*(unsigned char*)(p + 0) = (w & 255);
 	*(unsigned char*)(p + 1) = (w >> 8);
 #else
+    //  小端结构
 	memcpy(p, &w, 2);
 #endif
 	p += 2;
@@ -251,9 +252,11 @@ ikcpcb* ikcp_create(IUINT32 conv, void *user)
 	kcp->incr = 0;
 	kcp->probe = 0;
 	kcp->mtu = IKCP_MTU_DEF;
+
+    // 除去头的最大数据单元
 	kcp->mss = kcp->mtu - IKCP_OVERHEAD;
 	kcp->stream = 0;
-
+    
 	kcp->buffer = (char*)ikcp_malloc((kcp->mtu + IKCP_OVERHEAD) * 3);
 	if (kcp->buffer == NULL) {
 		ikcp_free(kcp);
@@ -503,7 +506,8 @@ int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 			return 0;
 		}
 	}
-
+    
+	 // 小于mss, 1个segment
 	if (len <= (int)kcp->mss) count = 1;
 	else count = (len + kcp->mss - 1) / kcp->mss;
 
@@ -513,6 +517,7 @@ int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 
 	// fragment
 	for (i = 0; i < count; i++) {
+		// 进行数据的分片
 		int size = len > (int)kcp->mss ? (int)kcp->mss : len;
 		seg = ikcp_segment_new(kcp, size);
 		assert(seg);
@@ -1147,6 +1152,7 @@ void ikcp_update(ikcpcb *kcp, IUINT32 current)
 {
 	IINT32 slap;
 
+    // 获取当前
 	kcp->current = current;
 
 	if (kcp->updated == 0) {

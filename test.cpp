@@ -51,6 +51,7 @@ void test(int mode)
 
 	// 配置窗口大小：平均延迟200ms，每20ms发送一个包，
 	// 而考虑到丢包重发，设置最大收发窗口为128
+	// 设置发送窗口和接收窗口
 	ikcp_wndsize(kcp1, 128, 128);
 	ikcp_wndsize(kcp2, 128, 128);
 
@@ -83,6 +84,7 @@ void test(int mode)
 	IUINT32 ts1 = iclock();
 
 	while (1) {
+		// sleep 1ms
 		isleep(1);
 		current = iclock();
 		ikcp_update(kcp1, iclock());
@@ -145,10 +147,10 @@ void test(int mode)
 			printf("[RECV] mode=%d sn=%d rtt=%d\n", mode, (int)sn, (int)rtt);
 		}
 		if (next > 1000) break;
-	}
+	} // 循环的接收数据
 
 	ts1 = iclock() - ts1;
-
+    // 释放控制块
 	ikcp_release(kcp1);
 	ikcp_release(kcp2);
 

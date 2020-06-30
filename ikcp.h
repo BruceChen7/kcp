@@ -288,7 +288,11 @@ struct IKCPSEG
 //---------------------------------------------------------------------
 struct IKCPCB
 {
+	// 4 字节的数据
+	// mtu 最大传输单元，每次发送的最大数据
 	IUINT32 conv, mtu, mss, state;
+	// snd_una下一个待确认的序列号
+	/// snd_nxt 下一个即将发送的序列号
 	IUINT32 snd_una, snd_nxt, rcv_nxt;
 	IUINT32 ts_recent, ts_lastack, ssthresh;
 	IINT32 rx_rttval, rx_srtt, rx_rto, rx_minrto;
@@ -299,7 +303,9 @@ struct IKCPCB
 	IUINT32 nodelay, updated;
 	IUINT32 ts_probe, probe_wait;
 	IUINT32 dead_link, incr;
+	// 发送队列
 	struct IQUEUEHEAD snd_queue;
+	// 接收队列
 	struct IQUEUEHEAD rcv_queue;
 	struct IQUEUEHEAD snd_buf;
 	struct IQUEUEHEAD rcv_buf;
