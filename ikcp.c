@@ -202,6 +202,7 @@ static int ikcp_canlog(const ikcpcb *kcp, int mask)
 }
 
 // output segment
+// 发送用户数据
 static int ikcp_output(ikcpcb *kcp, const void *data, int size)
 {
 	assert(kcp);
@@ -210,6 +211,7 @@ static int ikcp_output(ikcpcb *kcp, const void *data, int size)
 		ikcp_log(kcp, IKCP_LOG_OUTPUT, "[RO] %ld bytes", (long)size);
 	}
 	if (size == 0) return 0;
+	// 直接调用用户上层自定义的发送调用， udp为sendto
 	return kcp->output((const char*)data, size, kcp, kcp->user);
 }
 
@@ -245,8 +247,8 @@ ikcpcb* ikcp_create(IUINT32 conv, void *user)
 	kcp->ts_lastack = 0;
 	kcp->ts_probe = 0;
 	kcp->probe_wait = 0;
-	kcp->snd_wnd = IKCP_WND_SND;
-	kcp->rcv_wnd = IKCP_WND_RCV;
+	kcp->snd_wnd = IKCP_WND_SND; // 发送窗口
+	kcp->rcv_wnd = IKCP_WND_RCV; //  接收窗口
 	kcp->rmt_wnd = IKCP_WND_RCV;
 	kcp->cwnd = 0;
 	kcp->incr = 0;
@@ -478,6 +480,7 @@ int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 	if (len < 0) return -1;
 
 	// append to previous segment in streaming mode (if possible)
+	// 在流模式下进行append
 	if (kcp->stream != 0) {
 		if (!iqueue_is_empty(&kcp->snd_queue)) {
 			IKCPSEG *old = iqueue_entry(kcp->snd_queue.prev, IKCPSEG, node);
@@ -519,22 +522,27 @@ int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 	for (i = 0; i < count; i++) {
 		// 进行数据的分片
 		int size = len > (int)kcp->mss ? (int)kcp->mss : len;
+		// 创建一个seg
 		seg = ikcp_segment_new(kcp, size);
 		assert(seg);
 		if (seg == NULL) {
 			return -2;
 		}
 		if (buffer && len > 0) {
+			// 数据的拷贝
 			memcpy(seg->data, buffer, size);
 		}
 		seg->len = size;
 		seg->frg = (kcp->stream == 0)? (count - i - 1) : 0;
 		iqueue_init(&seg->node);
+		// 将节点加入到发送队列为
 		iqueue_add_tail(&seg->node, &kcp->snd_queue);
 		kcp->nsnd_que++;
 		if (buffer) {
+			// 移动buffer指针
 			buffer += size;
 		}
+	    // 酱烧用户的数据
 		len -= size;
 	}
 
@@ -770,22 +778,25 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 		IKCPSEG *seg;
 
 		if (size < (int)IKCP_OVERHEAD) break;
-
+		// 获取连接号
 		data = ikcp_decode32u(data, &conv);
+		// 不是同一个连接发送的数据，直接出错
 		if (conv != kcp->conv) return -1;
 
 		data = ikcp_decode8u(data, &cmd);
 		data = ikcp_decode8u(data, &frg);
+		// 接收窗口大小
 		data = ikcp_decode16u(data, &wnd);
 		data = ikcp_decode32u(data, &ts);
 		data = ikcp_decode32u(data, &sn);
 		data = ikcp_decode32u(data, &una);
+		// 数据长度
 		data = ikcp_decode32u(data, &len);
 
 		size -= IKCP_OVERHEAD;
 
 		if ((long)size < (long)len || (int)len < 0) return -2;
-
+		// 非法的命令
 		if (cmd != IKCP_CMD_PUSH && cmd != IKCP_CMD_ACK &&
 			cmd != IKCP_CMD_WASK && cmd != IKCP_CMD_WINS) 
 			return -3;
@@ -962,6 +973,7 @@ void ikcp_flush(ikcpcb *kcp)
 	count = kcp->ackcount;
 	for (i = 0; i < count; i++) {
 		size = (int)(ptr - buffer);
+		// 大于一个mtu
 		if (size + (int)IKCP_OVERHEAD > (int)kcp->mtu) {
 			ikcp_output(kcp, buffer, size);
 			ptr = buffer;
@@ -973,7 +985,9 @@ void ikcp_flush(ikcpcb *kcp)
 	kcp->ackcount = 0;
 
 	// probe window size (if remote window size equals zero)
+	// 需要进行窗口探测
 	if (kcp->rmt_wnd == 0) {
+		// 探测等待的时间为0
 		if (kcp->probe_wait == 0) {
 			kcp->probe_wait = IKCP_PROBE_INIT;
 			kcp->ts_probe = kcp->current + kcp->probe_wait;
@@ -1157,6 +1171,7 @@ void ikcp_update(ikcpcb *kcp, IUINT32 current)
 
 	if (kcp->updated == 0) {
 		kcp->updated = 1;
+		// 这一次flush的事件
 		kcp->ts_flush = kcp->current;
 	}
 

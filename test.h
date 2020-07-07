@@ -214,6 +214,7 @@ public:
 			it = p21.begin();
 			if (p21.size() == 0) return -1;
 		}	else {
+			// 获取从1到2的udp包
 			it = p12.begin();
 			if (p12.size() == 0) return -1;
 		}
@@ -221,12 +222,15 @@ public:
 		current = iclock();
 		if (current < pkt->ts()) return -2;
 		if (maxsize < pkt->size()) return -3;
+		// 删除对应的
 		if (peer == 0) {
 			p21.erase(it);
 		}	else {
+			// 
 			p12.erase(it);
 		}
 		maxsize = pkt->size();
+		// 拷贝数据到data中
 		memcpy(data, pkt->ptr(), maxsize);
 		delete pkt;
 		return maxsize;

@@ -262,7 +262,7 @@ typedef struct IQUEUEHEAD iqueue_head;
 
 
 //=====================================================================
-// SEGMENT
+// SEGMENT, 段的定义
 //=====================================================================
 struct IKCPSEG
 {
@@ -292,10 +292,13 @@ struct IKCPCB
 	// mtu 最大传输单元，每次发送的最大数据
 	IUINT32 conv, mtu, mss, state;
 	// snd_una下一个待确认的序列号
-	/// snd_nxt 下一个即将发送的序列号
+	// snd_nxt 下一个即将发送的序列号
+	// rcv_nxt 下一个接收的序号
 	IUINT32 snd_una, snd_nxt, rcv_nxt;
+	// 发送窗口
 	IUINT32 ts_recent, ts_lastack, ssthresh;
 	IINT32 rx_rttval, rx_srtt, rx_rto, rx_minrto;
+	// 发送窗口，接收窗口
 	IUINT32 snd_wnd, rcv_wnd, rmt_wnd, cwnd, probe;
 	IUINT32 current, interval, ts_flush, xmit;
 	IUINT32 nrcv_buf, nsnd_buf;

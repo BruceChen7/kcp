@@ -101,6 +101,8 @@ void test(int mode)
 
 		// 处理虚拟网络：检测是否有udp包从p1->p2
 		while (1) {
+			// hr为buffer实际从网络中读取的字节数
+			// vnet->recv表示p1->p2中读
 			hr = vnet->recv(1, buffer, 2000);
 			if (hr < 0) break;
 			// 如果 p2收到udp，则作为下层协议输入到kcp2
