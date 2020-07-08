@@ -182,34 +182,42 @@ public:
 
 	// 发送数据
 	// peer - 端点0/1，从0发送，从1接收；从1发送从0接收
+	// 虚拟网络发送字节
 	void send(int peer, const void *data, int size) {
 		if (peer == 0) {
+			// 发送次数 + 1
 			tx1++;
-			// 发送端丢弃
+			//  c从1到2的发送
 			if (r12.random() < lostrate) return;
 			if ((int)p12.size() >= nmax) return;
 		}	else {
+			// 从2到1的发送
 			tx2++;
 			if (r21.random() < lostrate) return;
 			if ((int)p21.size() >= nmax) return;
 		}
+		// 新建一个延迟包
 		DelayPacket *pkt = new DelayPacket(size, data);
 		// 获取当前的事件戳
 		current = iclock();
 		IUINT32 delay = rttmin;
+		// 书籍一个延迟
 		if (rttmax > rttmin) delay += rand() % (rttmax - rttmin);
 		pkt->setts(current + delay);
+		// 添加到1到2的队列中
 		if (peer == 0) {
 			// push 到发送队列中
 			p12.push_back(pkt);
 		}	else {
+			//  添加到2到1的独立额中
 			p21.push_back(pkt);
 		}
 	}
 
-	// 接收数据
+	// 接收数据，返回接收到的paakets size
 	int recv(int peer, void *data, int maxsize) {
 		DelayTunnel::iterator it;
+		// 从1中接收
 		if (peer == 0) {
 			it = p21.begin();
 			if (p21.size() == 0) return -1;
@@ -218,11 +226,14 @@ public:
 			it = p12.begin();
 			if (p12.size() == 0) return -1;
 		}
+		// 获取一个报文
 		DelayPacket *pkt = *it;
 		current = iclock();
+		// 时间没有到，直接返回
 		if (current < pkt->ts()) return -2;
+		// 超过了最大的
 		if (maxsize < pkt->size()) return -3;
-		// 删除对应的
+		// 从对应的通道中，删除对应的包
 		if (peer == 0) {
 			p21.erase(it);
 		}	else {

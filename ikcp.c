@@ -573,8 +573,10 @@ static void ikcp_update_ack(ikcpcb *kcp, IINT32 rtt)
 static void ikcp_shrink_buf(ikcpcb *kcp)
 {
 	struct IQUEUEHEAD *p = kcp->snd_buf.next;
+	// 如果buffer中有seg，也就是非空
 	if (p != &kcp->snd_buf) {
 		IKCPSEG *seg = iqueue_entry(p, IKCPSEG, node);
+		// 更新下一待确认的序列号
 		kcp->snd_una = seg->sn;
 	}	else {
 		kcp->snd_una = kcp->snd_nxt;
@@ -584,13 +586,14 @@ static void ikcp_shrink_buf(ikcpcb *kcp)
 static void ikcp_parse_ack(ikcpcb *kcp, IUINT32 sn)
 {
 	struct IQUEUEHEAD *p, *next;
-
+	// 不存在的sn
 	if (_itimediff(sn, kcp->snd_una) < 0 || _itimediff(sn, kcp->snd_nxt) >= 0)
 		return;
 
 	for (p = kcp->snd_buf.next; p != &kcp->snd_buf; p = next) {
 		IKCPSEG *seg = iqueue_entry(p, IKCPSEG, node);
 		next = p->next;
+		// 找到对应的sn的报文删除
 		if (sn == seg->sn) {
 			iqueue_del(p);
 			ikcp_segment_delete(kcp, seg);
@@ -603,6 +606,7 @@ static void ikcp_parse_ack(ikcpcb *kcp, IUINT32 sn)
 	}
 }
 
+// una未确认的序列好
 static void ikcp_parse_una(ikcpcb *kcp, IUINT32 una)
 {
 	struct IQUEUEHEAD *p, *next;
@@ -610,6 +614,7 @@ static void ikcp_parse_una(ikcpcb *kcp, IUINT32 una)
 		IKCPSEG *seg = iqueue_entry(p, IKCPSEG, node);
 		next = p->next;
 		if (_itimediff(una, seg->sn) > 0) {
+			// 删除这些已经确认的报文
 			iqueue_del(p);
 			ikcp_segment_delete(kcp, seg);
 			kcp->nsnd_buf--;
@@ -698,16 +703,17 @@ void ikcp_parse_data(ikcpcb *kcp, IKCPSEG *newseg)
 	struct IQUEUEHEAD *p, *prev;
 	IUINT32 sn = newseg->sn;
 	int repeat = 0;
-	
+	// 序列号非法, 直接删除
 	if (_itimediff(sn, kcp->rcv_nxt + kcp->rcv_wnd) >= 0 ||
 		_itimediff(sn, kcp->rcv_nxt) < 0) {
 		ikcp_segment_delete(kcp, newseg);
 		return;
 	}
-
+	// 逆序的的将seg梦查毒
 	for (p = kcp->rcv_buf.prev; p != &kcp->rcv_buf; p = prev) {
 		IKCPSEG *seg = iqueue_entry(p, IKCPSEG, node);
 		prev = p->prev;
+		// 如果找到了相同的序列号
 		if (seg->sn == sn) {
 			repeat = 1;
 			break;
@@ -716,12 +722,13 @@ void ikcp_parse_data(ikcpcb *kcp, IKCPSEG *newseg)
 			break;
 		}
 	}
-
+	// 插入到
 	if (repeat == 0) {
 		iqueue_init(&newseg->node);
 		iqueue_add(&newseg->node, p);
 		kcp->nrcv_buf++;
 	}	else {
+		// 重复发送，删除
 		ikcp_segment_delete(kcp, newseg);
 	}
 
@@ -759,6 +766,7 @@ void ikcp_parse_data(ikcpcb *kcp, IKCPSEG *newseg)
 //---------------------------------------------------------------------
 // input data
 //---------------------------------------------------------------------
+// 从协议栈下层收到数据报文
 int ikcp_input(ikcpcb *kcp, const char *data, long size)
 {
 	IUINT32 prev_una = kcp->snd_una;
@@ -768,7 +776,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 	if (ikcp_canlog(kcp, IKCP_LOG_INPUT)) {
 		ikcp_log(kcp, IKCP_LOG_INPUT, "[RI] %d bytes", (int)size);
 	}
-
+	 // 输入参数非法
 	if (data == NULL || (int)size < (int)IKCP_OVERHEAD) return -1;
 
 	while (1) {
@@ -776,13 +784,13 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 		IUINT16 wnd;
 		IUINT8 cmd, frg;
 		IKCPSEG *seg;
-
+		// 缓冲区太小，接收不了，那么返回
 		if (size < (int)IKCP_OVERHEAD) break;
 		// 获取连接号
 		data = ikcp_decode32u(data, &conv);
 		// 不是同一个连接发送的数据，直接出错
 		if (conv != kcp->conv) return -1;
-
+		// 解码kcp的头
 		data = ikcp_decode8u(data, &cmd);
 		data = ikcp_decode8u(data, &frg);
 		// 接收窗口大小
@@ -794,19 +802,22 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 		data = ikcp_decode32u(data, &len);
 
 		size -= IKCP_OVERHEAD;
-
+		// 剩余size < 发送的数据，错误
 		if ((long)size < (long)len || (int)len < 0) return -2;
 		// 非法的命令
 		if (cmd != IKCP_CMD_PUSH && cmd != IKCP_CMD_ACK &&
 			cmd != IKCP_CMD_WASK && cmd != IKCP_CMD_WINS) 
 			return -3;
-
+		// 对方接收窗口的大小更新
 		kcp->rmt_wnd = wnd;
+		// 根据未确认报文，删除已经确认的报文
 		ikcp_parse_una(kcp, una);
 		ikcp_shrink_buf(kcp);
-
+		// 收到对方的ack
 		if (cmd == IKCP_CMD_ACK) {
 			if (_itimediff(kcp->current, ts) >= 0) {
+				// 用来更新该kcp的rx_rttval时间
+				// 和重传rto时间
 				ikcp_update_ack(kcp, _itimediff(kcp->current, ts));
 			}
 			ikcp_parse_ack(kcp, sn);
@@ -835,14 +846,16 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 					(long)kcp->rx_rto);
 			}
 		}
-		else if (cmd == IKCP_CMD_PUSH) {
+		else if (cmd == IKCP_CMD_PUSH) {  // 收到数据包
 			if (ikcp_canlog(kcp, IKCP_LOG_IN_DATA)) {
 				ikcp_log(kcp, IKCP_LOG_IN_DATA, 
 					"input psh: sn=%lu ts=%lu", (unsigned long)sn, (unsigned long)ts);
 			}
+			// 在窗口范围内
 			if (_itimediff(sn, kcp->rcv_nxt + kcp->rcv_wnd) < 0) {
 				ikcp_ack_push(kcp, sn, ts);
 				if (_itimediff(sn, kcp->rcv_nxt) >= 0) {
+					// 创建一个segment
 					seg = ikcp_segment_new(kcp, len);
 					seg->conv = conv;
 					seg->cmd = cmd;
@@ -879,7 +892,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 		else {
 			return -3;
 		}
-
+		// 移动指针
 		data += len;
 		size -= len;
 	}
@@ -972,9 +985,12 @@ void ikcp_flush(ikcpcb *kcp)
 	// flush acknowledges
 	count = kcp->ackcount;
 	for (i = 0; i < count; i++) {
+		// 这里size为0，因为ptr就指向了buffer
 		size = (int)(ptr - buffer);
 		// 大于一个mtu
+		// 一般情况下步骤该分支
 		if (size + (int)IKCP_OVERHEAD > (int)kcp->mtu) {
+			// 执行下层协议栈的网络发送函数
 			ikcp_output(kcp, buffer, size);
 			ptr = buffer;
 		}
@@ -1174,7 +1190,7 @@ void ikcp_update(ikcpcb *kcp, IUINT32 current)
 		// 这一次flush的事件
 		kcp->ts_flush = kcp->current;
 	}
-
+	// 设置上次flush的时间
 	slap = _itimediff(kcp->current, kcp->ts_flush);
 
 	if (slap >= 10000 || slap < -10000) {

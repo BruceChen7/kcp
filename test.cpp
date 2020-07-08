@@ -20,6 +20,9 @@ LatencySimulator *vnet;
 // 模拟网络：模拟发送一个 udp包
 int udp_output(const char *buf, int len, ikcpcb *kcp, void *user)
 {
+	// 既可以当指针，又可以当int，因为kcpcb->output的指针类型的要求
+	// 	int (*output)(const char *buf, int len, struct IKCPCB *kcp, void *user);
+	// 而vnet的要求为int,这种放hi比较巧妙
 	union { int id; void *ptr; } parameter;
 	parameter.ptr = user;
 	vnet->send(parameter.id, buf, len);
@@ -87,6 +90,7 @@ void test(int mode)
 		// sleep 1ms
 		isleep(1);
 		current = iclock();
+		// 会执行刷新操作
 		ikcp_update(kcp1, iclock());
 		ikcp_update(kcp2, iclock());
 
