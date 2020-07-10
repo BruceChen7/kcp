@@ -267,19 +267,19 @@ typedef struct IQUEUEHEAD iqueue_head;
 struct IKCPSEG
 {
 	struct IQUEUEHEAD node;
-	IUINT32 conv;
+	IUINT32 conv;  // 会话编号，只有两方一致才会通信
 	IUINT32 cmd;
-	IUINT32 frg;
-	IUINT32 wnd;
+	IUINT32 frg;  // 分片编号，
+	IUINT32 wnd;  // 自己可用的窗口大小
 	IUINT32 ts;
-	IUINT32 sn;
-	IUINT32 una;
+	IUINT32 sn;  // 报文编号
+	IUINT32 una;  // d
 	IUINT32 len;
-	IUINT32 resendts;
-	IUINT32 rto;
-	IUINT32 fastack;
-	IUINT32 xmit;
-	char data[1];
+	IUINT32 resendts; //重传的时间戳。超过当前时间重发这个包
+	IUINT32 rto;  //重传的时间戳。超过当前时间重发这个包
+	IUINT32 fastack;  //快速重传机制，记录被跳过的次数，超过次数进行快速重传
+	IUINT32 xmit;   //重传次数
+	char data[1];  //数据内容
 };
 
 
@@ -289,6 +289,7 @@ struct IKCPSEG
 struct IKCPCB
 {
 	// 4 字节的数据
+	// conv是会话编号
 	// mtu 最大传输单元，每次发送的最大数据
 	IUINT32 conv, mtu, mss, state;
 	// snd_una下一个待确认的序列号

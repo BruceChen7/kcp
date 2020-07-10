@@ -60,7 +60,9 @@ void test(int mode)
 
 	// 判断测试用例的模式
 	if (mode == 0) {
-		// 默认模式
+		// 默认模式， 0表示关闭
+		// 0表示关闭快速重传
+		// 正常的拥塞窗口控制
 		ikcp_nodelay(kcp1, 0, 10, 0, 0);
 		ikcp_nodelay(kcp2, 0, 10, 0, 0);
 	}
@@ -85,10 +87,11 @@ void test(int mode)
 	int hr;
 
 	IUINT32 ts1 = iclock();
-
+	// 配置完后，开始进行书法数据
 	while (1) {
 		// sleep 1ms
 		isleep(1);
+		// 获取当前的毫秒
 		current = iclock();
 		// 会执行刷新操作
 		ikcp_update(kcp1, iclock());
