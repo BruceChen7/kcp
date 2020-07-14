@@ -1,5 +1,5 @@
-<mxfile host="app.diagrams.net" modified="2020-07-14T09:58:45.892Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36" etag="x2XP4B-Uk6ESOMct3tG6" version="13.4.1" type="github">
-  <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
+<mxfile host="app.diagrams.net" modified="2020-07-14T12:34:05.315Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36" etag="1WYHibgoIs-MRQi4pY4p" version="13.4.1" type="github" pages="2">
+  <diagram id="C5RBs43oDa-KdzZeNtuy" name="ikcp_input">
     <mxGraphModel dx="2249" dy="772" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="WIyWlLk6GJQsqaUBKTNV-0" />
@@ -176,6 +176,44 @@
             <mxPoint x="570" y="1060" as="sourcePoint" />
             <mxPoint x="640" y="1020" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="-d0Vb-dAbcVHCefVOq3F" name="ikcp_flush">
+    <mxGraphModel dx="677" dy="1537" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="Z96603nYht_UYcxuJ0Ke-0" />
+        <mxCell id="Z96603nYht_UYcxuJ0Ke-1" parent="Z96603nYht_UYcxuJ0Ke-0" />
+        <mxCell id="5g2SapMzeWaJlgpSwvCs-0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="Z96603nYht_UYcxuJ0Ke-1" source="5aHqGlb46mKQ3_5Rkp1--0" target="qaz9b83KiqQZ8q-wqg4S-0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5aHqGlb46mKQ3_5Rkp1--0" value="ikcp_flush" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="Z96603nYht_UYcxuJ0Ke-1">
+          <mxGeometry x="40" y="-40" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="qaz9b83KiqQZ8q-wqg4S-0" value="查看kcp-&amp;gt;ackcount,发送确认已经接收到的ack报文" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="Z96603nYht_UYcxuJ0Ke-1">
+          <mxGeometry x="40" y="40" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="qaz9b83KiqQZ8q-wqg4S-1" value="如果对方的接收窗口为0，那么计算进行窗口探测的时间，如有必要，立即发送IKCP_CMD_WASK报文" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="Z96603nYht_UYcxuJ0Ke-1">
+          <mxGeometry x="40" y="120" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="TftBO6txIq1J-cxi_Kdp-0" value="将kcp-&amp;gt;snd_queue中的数据转移到kcp-&amp;gt;snd_buf中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="Z96603nYht_UYcxuJ0Ke-1">
+          <mxGeometry x="40" y="240" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="5g2SapMzeWaJlgpSwvCs-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="Z96603nYht_UYcxuJ0Ke-1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="99.76" y="80" as="sourcePoint" />
+            <mxPoint x="99.76" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5g2SapMzeWaJlgpSwvCs-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="Z96603nYht_UYcxuJ0Ke-1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="99.75999999999999" y="200" as="sourcePoint" />
+            <mxPoint x="99.75999999999999" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5g2SapMzeWaJlgpSwvCs-3" value="将kcp-&amp;gt;snd_queue中的数据转移到kcp-&amp;gt;snd_buf中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="Z96603nYht_UYcxuJ0Ke-1">
+          <mxGeometry x="40" y="320" width="120" height="40" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
