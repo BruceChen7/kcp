@@ -118,6 +118,7 @@ void test(int mode)
 
 		// 处理虚拟网络：检测是否有udp包从p2->p1
 		while (1) {
+						
 			hr = vnet->recv(0, buffer, 2000);
 			if (hr < 0) break;
 			// 如果 p1收到udp，则作为下层协议输入到kcp1
@@ -126,6 +127,7 @@ void test(int mode)
 
 		// kcp2接收到任何包都返回回去
 		while (1) {
+			// 从应用层开始接受包，这点接收时从缓冲区中直接拿包
 			hr = ikcp_recv(kcp2, buffer, 10);
 			// 没有收到包就退出
 			if (hr < 0) break;
