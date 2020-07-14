@@ -1011,9 +1011,7 @@ void ikcp_flush(ikcpcb *kcp)
 		// 这里size为0，因为ptr就指向了buffer
 		size = (int)(ptr - buffer);
 
-		// 大于一个mtu
-		// 一般情况下步骤该分支
-
+		// 大于一个mtu，那么执行一次output发出去
 		if (size + (int)IKCP_OVERHEAD > (int)kcp->mtu) {
 			// 执行下层协议栈的网络发送函数
 			ikcp_output(kcp, buffer, size);
@@ -1022,13 +1020,13 @@ void ikcp_flush(ikcpcb *kcp)
 		ikcp_ack_get(kcp, i, &seg.sn, &seg.ts);
 		ptr = ikcp_encode_seg(ptr, &seg);
 	}
-
+	//  对ack报文清0，因为已经将ack报文encode了
 	kcp->ackcount = 0;
 
 	// probe window size (if remote window size equals zero)
-	// 需要进行窗口探测设置
+	// 如果对方的接收窗口为0，那么要进行对方窗口设置
 	if (kcp->rmt_wnd == 0) {
-		// 进行窗口探测时间
+		//  第一次进行窗口探测，设置窗口探测时间
 		if (kcp->probe_wait == 0) {
 			kcp->probe_wait = IKCP_PROBE_INIT;
 			kcp->ts_probe = kcp->current + kcp->probe_wait;
@@ -1041,6 +1039,7 @@ void ikcp_flush(ikcpcb *kcp)
 				if (kcp->probe_wait > IKCP_PROBE_LIMIT)
 					kcp->probe_wait = IKCP_PROBE_LIMIT;
 				kcp->ts_probe = kcp->current + kcp->probe_wait;
+				// 设置立即发送的状态
 				kcp->probe |= IKCP_ASK_SEND;
 			}
 		}
@@ -1070,9 +1069,9 @@ void ikcp_flush(ikcpcb *kcp)
 		}
 		ptr = ikcp_encode_seg(ptr, &seg);
 	}
-	// qi
+	// 标志为重置
 	kcp->probe = 0;
-
+	//  计算发送窗口和对端的接收窗口，选择较小的窗口
 	// calculate window size
 	cwnd = _imin_(kcp->snd_wnd, kcp->rmt_wnd);
 	// 不进行流量控制，那么使用全局的流量控制的最小值
@@ -1110,20 +1109,21 @@ void ikcp_flush(ikcpcb *kcp)
 	for (p = kcp->snd_buf.next; p != &kcp->snd_buf; p = p->next) {
 		IKCPSEG *segment = iqueue_entry(p, IKCPSEG, node);
 		int needsend = 0;
-		//xmit的为重传次数
-		// 第一次重传
+		//xmit为发送次数，第一次发送，设置超时时间
 		if (segment->xmit == 0) {
 			needsend = 1;
+            // 传输次数+1
 			segment->xmit++;
 			// 设置重传超时时间
 			segment->rto = kcp->rx_rto;
 			segment->resendts = current + segment->rto + rtomin;
 		}
-		else if (_itimediff(current, segment->resendts) >= 0) { // 到了重传的时间
+		else if (_itimediff(current, segment->resendts) >= 0) { // 不是第一次发送，那么就是重传，到了重传的时间
 			needsend = 1;
 			segment->xmit++;
-			// 增加一次重传次数
+			// 增加一次这个会话重传次数
 			kcp->xmit++;
+			// 关掉了no_delay
 			if (kcp->nodelay == 0) {
 				segment->rto += _imax_(segment->rto, (IUINT32)kcp->rx_rto);
 			}	else {
@@ -1145,7 +1145,7 @@ void ikcp_flush(ikcpcb *kcp)
 				change++;
 			}
 		}
-
+		// 需要现在发送
 		if (needsend) {
 			int need;
 			segment->ts = current;
@@ -1154,8 +1154,9 @@ void ikcp_flush(ikcpcb *kcp)
 
 			size = (int)(ptr - buffer);
 			need = IKCP_OVERHEAD + segment->len;
-
+			// 大于一个MTU直接发送
 			if (size + need > (int)kcp->mtu) {
+				// 使用协议层来传输
 				ikcp_output(kcp, buffer, size);
 				ptr = buffer;
 			}
@@ -1189,11 +1190,13 @@ void ikcp_flush(ikcpcb *kcp)
 		kcp->cwnd = kcp->ssthresh + resent;
 		kcp->incr = kcp->cwnd * kcp->mss;
 	}
-
+	// 有数据包丢失，发送窗口改变
 	if (lost) {
+		//  发送窗口上限更新
 		kcp->ssthresh = cwnd / 2;
 		if (kcp->ssthresh < IKCP_THRESH_MIN)
 			kcp->ssthresh = IKCP_THRESH_MIN;
+	    // 最多是
 		kcp->cwnd = 1;
 		kcp->incr = kcp->mss;
 	}
