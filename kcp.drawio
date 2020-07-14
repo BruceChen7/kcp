@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2020-07-14T08:48:45.186Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36" etag="NdI9kezSH65shgQaw26G" version="13.4.1" type="github">
+<mxfile host="app.diagrams.net" modified="2020-07-14T09:58:45.892Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36" etag="x2XP4B-Uk6ESOMct3tG6" version="13.4.1" type="github">
   <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
     <mxGraphModel dx="2249" dy="772" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -147,6 +147,9 @@
         <mxCell id="VJARTbVvi9XluzOKFTY2-13" value="将报文的sn设ts放到kcp-&amp;gt;acklist中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
           <mxGeometry x="440" y="830" width="120" height="40" as="geometry" />
         </mxCell>
+        <mxCell id="VJARTbVvi9XluzOKFTY2-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="VJARTbVvi9XluzOKFTY2-15" target="VJARTbVvi9XluzOKFTY2-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="VJARTbVvi9XluzOKFTY2-15" value="如果kcp-&amp;gt;rcv_buf中没有该sn的报文，那么直接将这个new segment添加到&lt;span&gt;链表rcv_buf中&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
           <mxGeometry x="440" y="920" width="120" height="71" as="geometry" />
         </mxCell>
@@ -160,6 +163,18 @@
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="30" y="750" as="sourcePoint" />
             <mxPoint x="-50" y="670" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VJARTbVvi9XluzOKFTY2-23" value="将rcv_buf中的segement放到kcp-&amp;gt;rcv_queue中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+          <mxGeometry x="440" y="1040" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="VJARTbVvi9XluzOKFTY2-25" value="&lt;br style=&quot;color: rgb(0 , 0 , 0)&quot;&gt;&lt;br style=&quot;color: rgb(0 , 0 , 0)&quot;&gt;&lt;span style=&quot;color: rgb(0 , 0 , 0) ; font-family: &amp;#34;helvetica&amp;#34;&quot;&gt;如果rcv_buf不为空，如果收到了kcp-&amp;gt;rcv_nxt对应的报文，且接收的kcp-&amp;gt;rcvqueue对应的窗口大小小于kcp-&amp;gt;rcv_wmd&lt;/span&gt;" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#008a00;strokeColor=#005700;fontColor=#ffffff;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+          <mxGeometry x="640" y="960" width="210" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="VJARTbVvi9XluzOKFTY2-26" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1060" as="sourcePoint" />
+            <mxPoint x="640" y="1020" as="targetPoint" />
           </mxGeometry>
         </mxCell>
       </root>
