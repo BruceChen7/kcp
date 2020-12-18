@@ -60,9 +60,9 @@ void test(int mode)
 
 	// 判断测试用例的模式
 	if (mode == 0) {
-		// 默认模式， 0表示关闭
-		// 0表示关闭快速重传
-		// 正常的拥塞窗口控制
+		// kcp默认模式， 第一个0关闭nodelay选项
+        // 第二个0标识关闭快速重传
+        // 第三个0标识正常的流量控制
 		ikcp_nodelay(kcp1, 0, 10, 0, 0);
 		ikcp_nodelay(kcp2, 0, 10, 0, 0);
 	}
@@ -72,7 +72,7 @@ void test(int mode)
 		ikcp_nodelay(kcp2, 0, 10, 0, 1);
 	}	else {
 		// 启动快速模式
-		// 第二个参数 nodelay-启用以后若干常规加速将启动
+		// 第二个参数 nodelay用以后若干常规加速将启动
 		// 第三个参数 interval为内部处理时钟，默认设置为 10ms
 		// 第四个参数 resend为快速重传指标，设置为2
 		// 第五个参数 为是否禁用常规流控，这里禁止
@@ -97,7 +97,7 @@ void test(int mode)
 		ikcp_update(kcp1, iclock());
 		ikcp_update(kcp2, iclock());
 
-		// 每隔 20ms，kcp1发送数据
+		// 积累了多个20秒的的时间，那么发送多次发送数据
 		for (; current >= slap; slap += 20) {
 			((IUINT32*)buffer)[0] = index++;
 			((IUINT32*)buffer)[1] = current;
@@ -118,7 +118,7 @@ void test(int mode)
 
 		// 处理虚拟网络：检测是否有udp包从p2->p1
 		while (1) {
-						
+
 			hr = vnet->recv(0, buffer, 2000);
 			if (hr < 0) break;
 			// 如果 p1收到udp，则作为下层协议输入到kcp1
@@ -143,7 +143,7 @@ void test(int mode)
 			IUINT32 sn = *(IUINT32*)(buffer + 0);
 			IUINT32 ts = *(IUINT32*)(buffer + 4);
 			IUINT32 rtt = current - ts;
-			
+
 			if (sn != next) {
 				// 如果收到的包不连续
 				printf("ERROR sn %d<->%d\n", (int)count, (int)next);

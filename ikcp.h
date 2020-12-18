@@ -2,7 +2,7 @@
 //
 // KCP - A Better ARQ Protocol Implementation
 // skywind3000 (at) gmail.com, 2010-2011
-//  
+//
 // Features:
 // + Average RTT reduce 30% - 40% vs traditional ARQ like tcp.
 // + Maximum RTT reduce three times vs tcp.
@@ -18,7 +18,7 @@
 
 
 //=====================================================================
-// 32BIT INTEGER DEFINITION 
+// 32BIT INTEGER DEFINITION
 //=====================================================================
 #ifndef __INTEGER_32_BITS__
 #define __INTEGER_32_BITS__
@@ -49,8 +49,8 @@
 	#include <stdint.h>
 	typedef uint32_t ISTDUINT32;
 	typedef int32_t ISTDINT32;
-#else 
-	typedef unsigned long ISTDUINT32; 
+#else
+	typedef unsigned long ISTDUINT32;
 	typedef long ISTDINT32;
 #endif
 #endif
@@ -119,7 +119,7 @@ typedef unsigned long long IUINT64;
 #elif (defined(_MSC_VER) || defined(__BORLANDC__) || defined(__WATCOMC__))
 #define INLINE __inline
 #else
-#define INLINE 
+#define INLINE
 #endif
 #endif
 
@@ -129,7 +129,7 @@ typedef unsigned long long IUINT64;
 
 
 //=====================================================================
-// QUEUE DEFINITION                                                  
+// QUEUE DEFINITION
 //=====================================================================
 #ifndef __IQUEUE_DEF__
 #define __IQUEUE_DEF__
@@ -142,7 +142,7 @@ typedef struct IQUEUEHEAD iqueue_head;
 
 
 //---------------------------------------------------------------------
-// queue init                                                         
+// queue init
 //---------------------------------------------------------------------
 #define IQUEUE_HEAD_INIT(name) { &(name), &(name) }
 #define IQUEUE_HEAD(name) \
@@ -160,7 +160,7 @@ typedef struct IQUEUEHEAD iqueue_head;
 
 
 //---------------------------------------------------------------------
-// queue operation                     
+// queue operation
 //---------------------------------------------------------------------
 #define IQUEUE_ADD(node, head) ( \
 	(node)->prev = (head), (node)->next = (head)->next, \
@@ -200,7 +200,7 @@ typedef struct IQUEUEHEAD iqueue_head;
 
 #define iqueue_foreach_entry(pos, head) \
 	for( (pos) = (head)->next; (pos) != (head) ; (pos) = (pos)->next )
-	
+
 
 #define __iqueue_splice(list, head) do {	\
 		iqueue_head *first = (list)->next, *last = (list)->prev; \
@@ -262,21 +262,21 @@ typedef struct IQUEUEHEAD iqueue_head;
 
 
 //=====================================================================
-// SEGMENT, 段的定义
+// SEGMENT, 报文段的定义
 //=====================================================================
 struct IKCPSEG
 {
 	struct IQUEUEHEAD node;
 	IUINT32 conv;  // 会话编号，只有两方一致才会通信
-	IUINT32 cmd;
+	IUINT32 cmd; // 命令字
 	IUINT32 frg;  // 分片编号，
 	IUINT32 wnd;  // 自己可用的窗口大小
-	IUINT32 ts;
+	IUINT32 ts; // 时间戳
 	IUINT32 sn;  // 报文编号
-	IUINT32 una;  // d
+	IUINT32 una;  // 未ack的序号
 	IUINT32 len;
 	IUINT32 resendts; //重传的时间戳。超过当前时间重发这个包
-	IUINT32 rto;  //重传的时间戳。超过当前时间重发这个包
+	IUINT32 rto;
 	IUINT32 fastack;  //快速重传机制，记录被跳过的次数，超过次数进行快速重传
 	IUINT32 xmit;   //重传次数
 	char data[1];  //数据内容
@@ -296,14 +296,15 @@ struct IKCPCB
 	// snd_nxt 下一个即将发送的序列号
 	// rcv_nxt 下一个接收的序号
 	IUINT32 snd_una, snd_nxt, rcv_nxt;
-	// 发送窗口
 	IUINT32 ts_recent, ts_lastack, ssthresh;
 	IINT32 rx_rttval, rx_srtt, rx_rto, rx_minrto;
 	// 发送窗口，接收窗口
 	IUINT32 snd_wnd, rcv_wnd, rmt_wnd, cwnd, probe;
+    // current为当前时间戳
 	IUINT32 current, interval, ts_flush, xmit;
 	IUINT32 nrcv_buf, nsnd_buf;
 	IUINT32 nrcv_que, nsnd_que;
+    // 是否设置nodelay
 	IUINT32 nodelay, updated;
 	IUINT32 ts_probe, probe_wait;
 	IUINT32 dead_link, incr;
@@ -311,15 +312,21 @@ struct IKCPCB
 	struct IQUEUEHEAD snd_queue;
 	// 接收队列
 	struct IQUEUEHEAD rcv_queue;
+    // 发送buffer
 	struct IQUEUEHEAD snd_buf;
+    // 接收buffer
 	struct IQUEUEHEAD rcv_buf;
 	IUINT32 *acklist;
 	IUINT32 ackcount;
 	IUINT32 ackblock;
 	void *user;
+    //
 	char *buffer;
+    // 处于fastresend
 	int fastresend;
 	int fastlimit;
+    // 是否开启拥塞算法
+    // 是否是流式
 	int nocwnd, stream;
 	int logmask;
 	int (*output)(const char *buf, int len, struct IKCPCB *kcp, void *user);
@@ -359,7 +366,7 @@ ikcpcb* ikcp_create(IUINT32 conv, void *user);
 void ikcp_release(ikcpcb *kcp);
 
 // set output callback, which will be invoked by kcp
-void ikcp_setoutput(ikcpcb *kcp, int (*output)(const char *buf, int len, 
+void ikcp_setoutput(ikcpcb *kcp, int (*output)(const char *buf, int len,
 	ikcpcb *kcp, void *user));
 
 // user/upper level recv: returns size, returns below zero for EAGAIN
@@ -368,17 +375,17 @@ int ikcp_recv(ikcpcb *kcp, char *buffer, int len);
 // user/upper level send, returns below zero for error
 int ikcp_send(ikcpcb *kcp, const char *buffer, int len);
 
-// update state (call it repeatedly, every 10ms-100ms), or you can ask 
+// update state (call it repeatedly, every 10ms-100ms), or you can ask
 // ikcp_check when to call it again (without ikcp_input/_send calling).
-// 'current' - current timestamp in millisec. 
+// 'current' - current timestamp in millisec.
 void ikcp_update(ikcpcb *kcp, IUINT32 current);
 
 // Determine when should you invoke ikcp_update:
-// returns when you should invoke ikcp_update in millisec, if there 
+// returns when you should invoke ikcp_update in millisec, if there
 // is no ikcp_input/_send calling. you can call ikcp_update in that
 // time, instead of call update repeatly.
-// Important to reduce unnacessary ikcp_update invoking. use it to 
-// schedule ikcp_update (eg. implementing an epoll-like mechanism, 
+// Important to reduce unnacessary ikcp_update invoking. use it to
+// schedule ikcp_update (eg. implementing an epoll-like mechanism,
 // or optimize ikcp_update when handling massive kcp connections)
 IUINT32 ikcp_check(const ikcpcb *kcp, IUINT32 current);
 
@@ -402,7 +409,7 @@ int ikcp_waitsnd(const ikcpcb *kcp);
 
 // fastest: ikcp_nodelay(kcp, 1, 20, 2, 1)
 // nodelay: 0:disable(default), 1:enable
-// interval: internal update timer interval in millisec, default is 100ms 
+// interval: internal update timer interval in millisec, default is 100ms
 // resend: 0:disable fast resend(default), 1:enable fast resend
 // nc: 0:normal congestion control(default), 1:disable congestion control
 int ikcp_nodelay(ikcpcb *kcp, int nodelay, int interval, int resend, int nc);
