@@ -3,7 +3,7 @@ KCP PROTOCOL SPECIFICATION
 
 1. Packet (aka. segment) Structure
 
-KCP has only one kind of segment: both the data and control messages are 
+KCP has only one kind of segment: both the data and control messages are
 encoded into the same structure and share the same header.
 
 The KCP packet (aka. segment) structure is as following:
@@ -36,11 +36,11 @@ conversation id.
 The value can be any random number, but in practice, both side between a
 connection will have many KCP objects (or control block) storing in the
 containers like a map or an array. A index is used as the key to look up one
-KCP object from the container. 
+KCP object from the container.
 
 So, the higher 16 bits of conversation id can be used as caller's index while
 the lower 16 bits can be used as callee's index. KCP will not handle
-handshake, and the index in both side can be decided and exchanged after 
+handshake, and the index in both side can be decided and exchanged after
 connection establish.
 
 When you receive and accept a remote packet, the local index can be extracted

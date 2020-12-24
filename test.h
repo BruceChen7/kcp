@@ -128,7 +128,7 @@ public:
 	int random() {
 		int x, i;
 		if (seeds.size() == 0) return 0;
-		if (size == 0) { 
+		if (size == 0) {
 			for (i = 0; i < (int)seeds.size(); i++) {
 				seeds[i] = i;
 			}
@@ -158,9 +158,9 @@ public:
 	// rttmin：rtt最小值，默认 60
 	// rttmax：rtt最大值，默认 125
 	// rtt是一个segment的往返延迟
-	LatencySimulator(int lostrate = 10, int rttmin = 60, int rttmax = 125, int nmax = 1000): 
+	LatencySimulator(int lostrate = 10, int rttmin = 60, int rttmax = 125, int nmax = 1000):
 		r12(100), r21(100) {
-		current = iclock();		
+		current = iclock();
 		this->lostrate = lostrate / 2;	// 上面数据是往返丢包率，单程除以2
 		this->rttmin = rttmin / 2;
 		this->rttmax = rttmax / 2;
@@ -181,14 +181,12 @@ public:
 		p21.clear();
 	}
 
-	// 发送数据
-	// peer - 端点0/1，从0发送，从1接收；从1发送从0接收
-	// 虚拟网络发送字节
+	// 发送数据，虚拟网络发送数据
 	void send(int peer, const void *data, int size) {
 		if (peer == 0) {
-			// 发送次数 + 1
+            // 从kcp1发送次数
 			tx1++;
-			//  c从1到2的发送
+            // 丢失
 			if (r12.random() < lostrate) return;
 			if ((int)p12.size() >= nmax) return;
 		}	else {
@@ -199,18 +197,19 @@ public:
 		}
 		// 新建一个延迟包
 		DelayPacket *pkt = new DelayPacket(size, data);
-		// 获取当前的事件戳
+		// 获取当前的时间戳
 		current = iclock();
+        // 最小delay时间
 		IUINT32 delay = rttmin;
-		// 书籍一个延迟
+		// 随机一个延迟
 		if (rttmax > rttmin) delay += rand() % (rttmax - rttmin);
+        // 设置
 		pkt->setts(current + delay);
-		// 添加到1到2的队列中
+		// kcp1到kcp2
 		if (peer == 0) {
 			// push 到发送队列中
 			p12.push_back(pkt);
 		}	else {
-			//  添加到2到1的独立额中
 			p21.push_back(pkt);
 		}
 	}
@@ -218,8 +217,9 @@ public:
 	// 接收数据，返回接收到的paakets size
 	int recv(int peer, void *data, int maxsize) {
 		DelayTunnel::iterator it;
-		// 从1中接收
+		// 从kcp1中接收
 		if (peer == 0) {
+            // 那么获取k
 			it = p21.begin();
 			if (p21.size() == 0) return -1;
 		}	else {
@@ -238,7 +238,7 @@ public:
 		if (peer == 0) {
 			p21.erase(it);
 		}	else {
-			// 
+			//
 			p12.erase(it);
 		}
 		maxsize = pkt->size();
