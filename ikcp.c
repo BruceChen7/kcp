@@ -400,11 +400,13 @@ int ikcp_recv(ikcpcb *kcp, char *buffer, int len)
         p = p->next;
 
         if (buffer) {
+            // 将数据copy
             memcpy(buffer, seg->data, seg->len);
             buffer += seg->len;
         }
 
         len += seg->len;
+        // 分片号为0
         fragment = seg->frg;
 
         if (ikcp_canlog(kcp, IKCP_LOG_RECV)) {
@@ -413,6 +415,7 @@ int ikcp_recv(ikcpcb *kcp, char *buffer, int len)
 
         if (ispeek == 0) {
             iqueue_del(&seg->node);
+            // 直接释放节点
             ikcp_segment_delete(kcp, seg);
             kcp->nrcv_que--;
         }
@@ -473,6 +476,7 @@ int ikcp_peeksize(const ikcpcb *kcp)
     for (p = kcp->rcv_queue.next; p != &kcp->rcv_queue; p = p->next) {
         seg = iqueue_entry(p, IKCPSEG, node);
         length += seg->len;
+        // 到达了最后一个分片
         if (seg->frg == 0) break;
     }
 
@@ -570,8 +574,12 @@ int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 static void ikcp_update_ack(ikcpcb *kcp, IINT32 rtt)
 {
     IINT32 rto = 0;
+    // https://tools.ietf.org/html/rfc2988
+    // srtt smoothed round-trip time
     if (kcp->rx_srtt == 0) {
+        // srtt直接更新成smooth round-trip time
         kcp->rx_srtt = rtt;
+        // rttval之
         kcp->rx_rttval = rtt / 2;
     }    else {
         long delta = rtt - kcp->rx_srtt;
@@ -580,6 +588,7 @@ static void ikcp_update_ack(ikcpcb *kcp, IINT32 rtt)
         kcp->rx_srtt = (7 * kcp->rx_srtt + rtt) / 8;
         if (kcp->rx_srtt < 1) kcp->rx_srtt = 1;
     }
+    // 重传超时时间设置
     rto = kcp->rx_srtt + _imax_(kcp->interval, 4 * kcp->rx_rttval);
     kcp->rx_rto = _ibound_(kcp->rx_minrto, rto, IKCP_RTO_MAX);
 }
@@ -795,7 +804,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
     if (ikcp_canlog(kcp, IKCP_LOG_INPUT)) {
         ikcp_log(kcp, IKCP_LOG_INPUT, "[RI] %d bytes", (int)size);
     }
-     // 输入参数非法，或者body都小于kcp的协议数据
+     // 输入数据没有或者size不对
     if (data == NULL || (int)size < (int)IKCP_OVERHEAD) return -1;
 
     while (1) {
@@ -811,9 +820,11 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
         if (conv != kcp->conv) return -1;
         // 解码kcp的头
         data = ikcp_decode8u(data, &cmd);
+        // 解码段
         data = ikcp_decode8u(data, &frg);
         // 接收窗口大小
         data = ikcp_decode16u(data, &wnd);
+        // s获取当前时间戳
         data = ikcp_decode32u(data, &ts);
         // 对方的发送序列号
         data = ikcp_decode32u(data, &sn);
@@ -822,7 +833,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
         data = ikcp_decode32u(data, &len);
 
         size -= IKCP_OVERHEAD;
-        // 剩余size < 发送的数据，错误
+        // 剩余size < 接收到的数据，错误
         if ((long)size < (long)len || (int)len < 0) return -2;
         // 非法的命令
         if (cmd != IKCP_CMD_PUSH && cmd != IKCP_CMD_ACK &&
@@ -832,9 +843,9 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
         kcp->rmt_wnd = wnd;
         // 根据未确认报文，删除已经确认的报文
         ikcp_parse_una(kcp, una);
-        // 更新下一个待发送的报文
+        // 更新下一个待确认的报文
         ikcp_shrink_buf(kcp);
-        // 收到对方的ack
+        // 收到对方发送过来的ack
         if (cmd == IKCP_CMD_ACK) {   // 对方发送的ack报文
             if (_itimediff(kcp->current, ts) >= 0) {
                 // 用来更新该kcp的rx_rttval时间
@@ -869,13 +880,14 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
                     (long)kcp->rx_rto);
             }
         }
-        else if (cmd == IKCP_CMD_PUSH) {  // 收到数据包
+        else if (cmd == IKCP_CMD_PUSH) {  // 收到数据包，需要快速push
             if (ikcp_canlog(kcp, IKCP_LOG_IN_DATA)) {
                 ikcp_log(kcp, IKCP_LOG_IN_DATA,
                     "input psh: sn=%lu ts=%lu", (unsigned long)sn, (unsigned long)ts);
             }
             // 在窗口范围内
             if (_itimediff(sn, kcp->rcv_nxt + kcp->rcv_wnd) < 0) {
+                // 给kcp添加一个ack报文
                 ikcp_ack_push(kcp, sn, ts);
                 //  接收到之后的数据
                 if (_itimediff(sn, kcp->rcv_nxt) >= 0) {
